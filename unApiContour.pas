@@ -218,12 +218,56 @@ var
     contourBitRes: TContourBitEdit;
     curListBit: TList<TPointD>;
     tp: TTypePoint;
+    listContourBit: TList<IContourBit>;
+
+    function containInList(aContourBit: IContourBit): Boolean;
+    var
+        point1, point2: IContourPoint;
+        idxPoint: Integer;
+        contourBitIter: IContourBit;
+        flag: Boolean;
+    begin
+        if not Assigned(listContourBit) then
+            Exit(False);
+
+        for contourBitIter in listContourBit do begin
+            if contourBitIter.getPointCount <> aContourBit.getPointCount then
+                Continue;
+
+            idxPoint := 0;
+
+            flag := True;
+
+            while idxPoint < aContourBit.getPointCount do begin
+                point1 := aContourBit.getPoint(idxPoint);
+                point2 := contourBitIter.getPoint(idxPoint);
+                if (point1.getX <> point2.getX) or (point1.getY <> point2.getY) then begin
+                    flag := False;
+                    break;
+                end;
+
+                Inc(idxPoint);
+            end;
+
+            if flag then
+                Exit(True);
+        end;
+
+        Result := False;
+    end;
 
     //flush contourBit
     procedure freeCurList;
+    var
+        innerContourBit: IContourBit;
     begin
       if Assigned(curListBit) then begin
-        contourRes.addContourBit(curListBit.toContourBit);
+        innerContourBit := curListBit.toContourBit;
+        if not containInList(innerContourBit) then begin
+            contourRes.addContourBit(innerContourBit);
+            listContourBit.Add(innerContourBit);
+        end;
+
         FreeAndNil(curListBit);
       end;
 
@@ -249,6 +293,8 @@ var
     end;
 begin
     contourRes := TContourEdit.Create;
+
+    listContourBit := TList<IContourBit>.Create;
 
     idxContour := 0;
     while idxContour < cntrs.getContourCount do begin
@@ -349,6 +395,9 @@ begin
 
         Inc(idxContour);
     end;
+
+    listContourBit.Clear;
+    listContourBit.Free;
 
     Result := contourRes;
 end;
