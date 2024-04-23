@@ -211,7 +211,7 @@ end;
 function CutContoursByWindow(const cntrs: IContours; const window: TRect_Float): IContour;
 var
     contourRes: TContourEdit;
-    idxContour, idxContourBit, idxPoint: Integer;
+    idxContour, idxContourBit, idxPoint, i: Integer;
     contourIter: IContour;
     contourBitIter: IContourBit;
     pointIter, pointNext: IContourPoint;
@@ -310,9 +310,36 @@ begin
             while  idxPoint < contourBitIter.getPointCount do begin
                 pointIter := contourBitIter.getPoint(idxPoint);
 
+                if idxPoint = 30 then
+                    idxPoint := idxPoint;
+
+
                 case window.typePoint(pointIter) of
                     tpInRect: begin
                         addPoint(pointIter);
+                        Inc(idxPoint);
+                        if idxPoint = 30 then
+                            idxPoint := idxPoint;
+                        pointNext := contourBitIter.getPoint(idxPoint);
+                        while window.typePoint(pointNext) = tpInRect do begin
+                            addPoint(pointNext);
+                            pointIter := pointNext;
+                            Inc(idxPoint);
+                            if idxPoint = 30 then
+                                idxPoint := idxPoint;
+                            pointNext := contourBitIter.getPoint(idxPoint);
+                        end;
+
+                        if Assigned(pointNext) then begin
+                          addPoint(pointNext);
+                          Inc(idxPoint);
+                        end;
+                        pointIter := pointNext;
+                        pointNext := contourBitIter.getPoint(idxPoint);
+                        if (window.typePoint(pointNext) <> tpInRect) and (window.crossCount(pointIter, pointNext) < 2) then
+                            freeCurList;
+
+                        Continue;
                     end;
                     tpOnBorder: begin
                         pointNext := contourBitIter.getPoint(idxPoint + 1);
@@ -351,6 +378,20 @@ begin
                           tpOutRect: begin
                             if window.crossCount(pointIter, pointNext) > 1 {хотя можно и 0} then begin
                                 addPoint([pointIter, pointNext]);
+
+                                pointIter := pointNext;
+                                pointNext := contourBitIter.getPoint(idxPoint);
+
+                                while (window.typePoint(pointNext) = tpInRect) or (window.crossCount(pointIter, pointNext) > 1) do begin
+                                  addPoint(pointNext);
+                                  Inc(idxPoint);
+                                  pointIter := pointNext;
+                                  pointNext := contourBitIter.getPoint(idxPoint);
+                                end;
+
+                                freeCurList;
+
+
                                 Continue;
                             end
                                 else
